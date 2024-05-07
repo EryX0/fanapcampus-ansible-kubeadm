@@ -1,0 +1,14 @@
+---
+- name: Roles starter.
+  hosts: master
+  vars:
+    kubernetes_version: 'v1.30'
+    master_node_ip: '192.168.60.3'
+    pod_network_cidr: '10.244.0.0/16'
+    worker_nodes:
+      - {number: '1', ip: '192.168.60.4'}
+  roles:
+    - prerequisites
+    # - kubeadm
+    - cluster-init
+    # - node-join

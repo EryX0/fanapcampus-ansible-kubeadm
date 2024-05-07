@@ -1,0 +1,6 @@
+---
+# tasks file for cluster-init
+
+- name: Initialize kubeadm
+  ansible.builtin.command:
+    cmd: kubeadm init --apiserver-advertise-address={{ master_node_ip }} --control-plane-endpoint={{ master_node_ip }} --pod-network-cidr={{ pod_network_cidr }} --image-repository docker.iranrepo.ir/kubesphere

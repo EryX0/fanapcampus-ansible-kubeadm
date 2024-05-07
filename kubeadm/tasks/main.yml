@@ -1,0 +1,59 @@
+---
+# tasks file for kubeadm
+# - name: Check vpn mode
+#   ansible.builtin.get_url:
+#     url: icanhazip.com
+#     register: vpn_ip
+#     msg: "VPN IP is {{ vpn_ip.stdout }}"
+
+- name: Install dependencies
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - gpg
+
+- name: Create directory for k8s apt keyrings
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Download and Dearmor K8s key 
+  ansible.builtin.apt_key:
+    url: https://pkgs.k8s.io/core:/stable:/{{ kubernetes_version }}/deb/Release.key
+    keyring: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+- name: Add K8s apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/{{ kubernetes_version }}/deb/ /"
+    state: present
+    filename: kubernetes.list
+    update_cache: true
+
+- name: Install Kubelet, Kubeadm, Kubectl
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+
+- name: Hold kubelet, kubeadm, kubectl versions
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+
+- name: Enable kubelet service
+  ansible.builtin.systemd:
+    name: kubelet
+    enabled: true
+    state: started

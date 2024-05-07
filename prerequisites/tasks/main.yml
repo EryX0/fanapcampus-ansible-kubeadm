@@ -1,0 +1,68 @@
+---
+# tasks file for prerequisites
+
+- name: Set ipv4 forward
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_file: /etc/sysctl.d/k8s.conf
+    state: present
+    reload: true
+    sysctl_set: true
+
+- name: Disable SWAP since kubernetes can't work with swap enabled (1/2)
+  shell: |
+    swapoff -a
+  
+- name: Disable SWAP in fstab since kubernetes can't work with swap enabled (2/2)
+  replace:
+    path: /etc/fstab
+    regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+    replace: '# \1'
+
+- name: Install containerd and runc
+  ansible.builtin.package:
+    name: containerd
+    state: present
+
+- name: Create a directory if it does not exist
+  ansible.builtin.file:
+    path: /etc/containerd
+    state: directory
+
+- name: Create containerd config file (if it doesn't exist)
+  ansible.builtin.file:
+    path: /etc/containerd/config.toml
+    state: touch
+
+- name: "Get containerd settings"
+  command: containerd config default
+  register: containerd_default_settings
+
+- name: "Save containerd settings to /etc/containerd"
+  ansible.builtin.copy:
+    content: "{{ containerd_default_settings.stdout | trim }}" 
+    dest: "/etc/containerd/config.toml"
+
+# - name: Configure cgroup driver to work with containerd
+#   ansible.builtin.blockinfile:
+#     path: /etc/containerd/config.toml
+#     block: |
+#         [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+#           SystemdCgroup = true
+
+- name: Set Cgroup driver to systemd
+  lineinfile:
+    insertafter: '.*\[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options\]$'
+    line: | 
+      SystemdCgroup = true
+    regexp: 'SystemdCgroup = false'
+    state: present
+    path: /etc/containerd/config.toml
+
+- name: Restart containerd
+  ansible.builtin.systemd_service:
+    name: containerd
+    state: restarted
+    enabled: true
+
