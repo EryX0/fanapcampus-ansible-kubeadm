@@ -1,4 +1,4 @@
 [master]
-192.168.60.3 ansible_user=root
+188.166.154.155 ansible_user=root
 [worker]
-192.168.60.4
+134.209.29.14
