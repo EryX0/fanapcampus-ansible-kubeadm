@@ -1,5 +1,18 @@
 ---
-- name: Roles starter.
+- name: Default roles starter.
+  hosts: all
+  vars:
+    kubernetes_version: 'v1.30'
+    master_node_ip: '10.106.0.4'
+    pod_network_cidr: '10.244.0.0/16'
+    worker_nodes:
+      - {name: 'node1', ip: '10.106.0.7'}
+    master_hostname: "{{ groups['master'] }}"
+  roles:
+    - prerequisites
+    - kubeadm
+
+- name: Master node roles handler.
   hosts: master
   vars:
     kubernetes_version: 'v1.30'
@@ -7,8 +20,18 @@
     pod_network_cidr: '10.244.0.0/16'
     worker_nodes:
       - {name: 'node1', ip: '10.106.0.7'}
+    master_hostname: "{{ groups['master'] }}"
   roles:
-    # - prerequisites
-    # - kubeadm
     - cluster-init
-    # - node-join
+
+- name: Worker nodes roles handler.
+  hosts: workers
+  vars:
+    kubernetes_version: 'v1.30'
+    master_node_ip: '10.106.0.4'
+    pod_network_cidr: '10.244.0.0/16'
+    worker_nodes:
+      - {name: 'node1', ip: '10.106.0.7'}
+    master_hostname: "{{ groups['master'] }}"
+  roles:
+    - node-join

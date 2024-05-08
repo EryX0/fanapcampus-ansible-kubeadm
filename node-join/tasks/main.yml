@@ -1,2 +1,11 @@
 ---
 # tasks file for node-join
+
+- name: Reset kubeadm
+  ansible.builtin.command:
+    cmd: kubeadm reset -f
+
+- name: Run kubeadm join
+  ansible.builtin.command:
+    cmd: "{{ hostvars[item]['kubeadm_join'] }}"
+  with_items: "{{ master_hostname }}"

@@ -2,9 +2,37 @@
 # tasks file for cluster-init
 
 - name: Reset kubeadm
-  ansible.builtin.shell: kubeadm reset -f
+  ansible.builtin.command:
+    cmd: kubeadm reset -f
 
 - name: Initialize kubeadm
   ansible.builtin.command:
     cmd: kubeadm init --apiserver-advertise-address={{ master_node_ip }} --control-plane-endpoint={{ master_node_ip }} --pod-network-cidr={{ pod_network_cidr }} --ignore-preflight-errors=NumCPU
 
+- name: Set KUBEPROXY environment variable
+  ansible.builtin.shell: export KUBECONFIG=/etc/kubernetes/admin.conf
+
+- name: Create Kubeconfig folder in user's home directory
+  ansible.builtin.file:
+    path: /{{ ansible_user }}/.kube
+    state: directory
+
+- name: Copy Kubeconfig file to user's home directory
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /{{ ansible_user }}/.kube/config
+    remote_src: yes
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Install Flannel as Pod networking interface (CNI)
+  ansible.builtin.command:
+    cmd: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+- name: Generate join token
+  shell: kubeadm token create --print-join-command
+  register: kubeadm_join_cmd
+
+- name: Set join command as a fact (var)
+  set_fact:
+    kubeadm_join: "{{ kubeadm_join_cmd.stdout }}"

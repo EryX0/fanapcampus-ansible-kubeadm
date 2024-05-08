@@ -1,4 +1,4 @@
 [master]
-188.166.154.155 ansible_user=root
-[worker]
-134.209.29.14
+master_ip   ansible_user=root
+[workers]
+worker01_ip   ansible_user=root
